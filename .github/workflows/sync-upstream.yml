@@ -1,0 +1,36 @@
+# Synchronisation du miroir avec Shardj/zf1-future (DEV-13224).
+# Pousse master et les tags de l'amont tels quels. Les pushes ne sont jamais forcés : un
+# historique amont réécrit ou un tag déplacé fait échouer le job, ce qui est le signal attendu.
+name: Synchronisation avec Shardj/zf1-future
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: Rapatrier l'amont
+        run: |
+          git remote add upstream https://github.com/Shardj/zf1-future.git
+          git fetch upstream --tags
+
+      - name: Pousser master et les tags
+        run: |
+          git push origin refs/remotes/upstream/master:refs/heads/master
+          git push origin --tags
+          echo "master : $(git rev-parse --short upstream/master), tags : $(git tag | wc -l)"
